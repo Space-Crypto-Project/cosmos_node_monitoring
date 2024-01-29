@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 read -p "Enter bond_denom value, for example, ubld for Agoric: " BOND_DENOM
 read -p "Enter bench_prefix value, for example, agoric for Agoric: " BENCH_PREFIX
