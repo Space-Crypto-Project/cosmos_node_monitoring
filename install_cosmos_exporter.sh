@@ -64,7 +64,7 @@ echo -e "\e[1m\e[32m1. Installing cosmos-exporter... \e[0m" && sleep 1
 #sudo cp ./cosmos-exporter /usr/bin
 #rm cosmos-exporter* -rf
 
-# install cosmos-exporter master branch
+# install cosmos-exporter master branch (compatible with ethermint)
 git clone https://github.com/solarlabsteam/cosmos-exporter.git
 cd cosmos-exporter
 sudo cp ./cosmos-exporter /usr/bin
