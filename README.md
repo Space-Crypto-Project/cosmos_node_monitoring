@@ -5,7 +5,7 @@
 ### Install exporters on validator node
 First of all you will have to install exporters on validator node. For that you can use one-liner below
 ```
-wget -O install_exporters.sh https://raw.githubusercontent.com/Cosmos-TechHub/cosmos_node_monitoring/master/install_exporters.sh && chmod +x install_exporters.sh && ./install_exporters.sh
+wget -O install_exporters.sh https://github.com/Space-Crypto-Project/cosmos_node_monitoring/master/install_exporters.sh && chmod +x install_exporters.sh && ./install_exporters.sh
 ```
 
 | KEY |VALUE |
