@@ -24,28 +24,28 @@ CONS_P_PREFIX=${CONS_P_PREFIX:-$BENCH_PREFIX}
 ExecStart="cosmos-exporter --denom ${BOND_DENOM} --denom-coefficient ${CHAIN_DECIMAL} --bech-prefix ${BENCH_PREFIX} --tendermint-rpc http://localhost:${RPC_PORT} --node localhost:${GRPC_PORT}"
 
 
-if [ "$BECH_ACCOUNT_PREFIX" != "$BENCH_PREFIX" ]; then
-    ExecStart="$ExecStart --bech-account-prefix $BECH_ACCOUNT_PREFIX"
+if [ "$ACCOUNT_PREFIX" != "$BENCH_PREFIX" ]; then
+    ExecStart="$ExecStart --bech-account-prefix $ACCOUNT_PREFIX"
 fi
 
-if [ "$BECH_ACCOUNT_PUBKEY_PREFIX" != "$BENCH_PREFIX" ]; then
-    ExecStart="$ExecStart --bech-account-pubkey-prefix $BECH_ACCOUNT_PUBKEY_PREFIX"
+if [ "$ACCOUNT_P_PREFIX" != "$BENCH_PREFIX" ]; then
+    ExecStart="$ExecStart --bech-account-pubkey-prefix $ACCOUNT_P_PREFIX"
 fi
 
-if [ "$BECH_VALIDATOR_PREFIX" != "$BENCH_PREFIX" ]; then
-    ExecStart="$ExecStart --bech-validator-prefix $BECH_VALIDATOR_PREFIX"
+if [ "$VAL_PREFIX" != "$BENCH_PREFIX" ]; then
+    ExecStart="$ExecStart --bech-validator-prefix $VAL_PREFIX"
 fi
 
-if [ "$BECH_VALIDATOR_PUBKEY_PREFIX" != "$BENCH_PREFIX" ]; then
-    ExecStart="$ExecStart --bech-validator-pubkey-prefix $BECH_VALIDATOR_PUBKEY_PREFIX"
+if [ "$VAL_P_PREFIX" != "$BENCH_PREFIX" ]; then
+    ExecStart="$ExecStart --bech-validator-pubkey-prefix $VAL_P_PREFIX"
 fi
 
-if [ "$BECH_CONSENSUS_NODE_PREFIX" != "$BENCH_PREFIX" ]; then
-    ExecStart="$ExecStart --bech-consensus-node-prefix $BECH_CONSENSUS_NODE_PREFIX"
+if [ "$CONS_PREFIX" != "$BENCH_PREFIX" ]; then
+    ExecStart="$ExecStart --bech-consensus-node-prefix $CONS_PREFIX"
 fi
 
-if [ "$BECH_CONSENSUS_NODE_PUBKEY_PREFIX" != "$BENCH_PREFIX" ]; then
-    ExecStart="$ExecStart --bech-consensus-node-pubkey-prefix $BECH_CONSENSUS_NODE_PUBKEY_PREFIX"
+if [ "$CONS_P_PREFIX" != "$BENCH_PREFIX" ]; then
+    ExecStart="$ExecStart --bech-consensus-node-pubkey-prefix $CONS_P_PREFIX"
 fi
 
 echo '================================================='
