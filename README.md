@@ -14,6 +14,7 @@ wget -O install_exporters.sh https://raw.githubusercontent.com/Cosmos-TechHub/co
 | **bench_prefix** | Prefix for chain addresses, for example, `agoric` for Agoric. You can find it in public addresses like this **agoric**_valoper1zyyz4m9ytdf60fn9yaafx7uy7h463n7alv2ete_ |
 | **rpc_port** | Your validator `rpc` port that is defined in `config.toml` file. Default value for aura is `26657` |
 | **grpc_port** | Your validator `grpc` port that is defined in `app.toml` file. Default value for aura is `9090` |
+| **Chain Precision** | Network precision. Default value for aura is `6` |
 
 make sure prometheus is enabled in validator `config.toml` file
 
