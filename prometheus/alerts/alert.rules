@@ -12,6 +12,114 @@ groups:
       # Labels - additional labels to be attached to the alert
       labels:
         severity: 'critical'
+    
+    - alert: MissingBlocksTendermint
+      expr: round(delta(tendermint_consensus_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) >= 5
+      for: 5m
+      labels:
+        severity: major
+        service: cosmos-monitoring
+      annotations:
+        description: "Validator missing blocks ({{ $value }} in last 10 minutes)"
+
+    - alert: MissingBlocksCometBft
+      expr: round(delta(cometbft_consensus_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) >= 5
+      for: 5m
+      labels:
+        severity: major
+        service: cosmos-monitoring
+      annotations:
+        description: "Validator missing blocks ({{ $value }} in last 10 minutes)"
+
+    - alert: MissingBlocksCosmos
+      expr: round(delta(cosmos_validator_missed_blocks{skip_missing_blocks_alert!="true"}[5m])) > 0
+      for: 5m
+      labels:
+        severity: major
+        service: cosmos-monitoring
+      annotations:
+        description: 'Validator `{{ $labels.moniker }}` is missing `{{ $value }}` blocks!'
+
+    - alert: DegradedSyncingTendermint
+      expr: increase(tendermint_consensus_height{skip_sync_alert!="true"}[5m]) < 20
+      for: 10m
+      labels:
+        severity: warning
+        service: cosmos-monitoring
+      annotations:
+        description: "Degraded syncing performance (less than 20 blocks in the last 5 min)"
+
+    - alert: DegradedSyncingCometBft
+      expr: increase(cometbft_consensus_height{skip_sync_alert!="true"}[5m]) < 20
+      for: 10m
+      labels:
+        severity: warning
+        service: cosmos-monitoring
+      annotations:
+        description: "Degraded syncing performance (less than 20 blocks in the last 5 min)"
+
+    - alert: ValidatorTooFewPeersT
+      expr: tendermint_p2p_peers < 15
+      for: 15m
+      labels:
+        severity: info
+        service: cosmos-monitoring
+      annotations:
+        description: "Number of peers is {{ $value }} and it is lower than threshold (<15)"
+
+    - alert: ValidatorTooFewPeersC
+      expr: cometbft_p2p_peers < 15
+      for: 15m
+      labels:
+        severity: info
+        service: cosmos-monitoring
+      annotations:
+        description: "Number of peers is {{ $value }} and it is lower than threshold (<15)"
+
+    - alert: RankDecrease
+      expr: delta(cosmos_validator_rank[5m]) < 0
+      for: 5m
+      labels:
+        severity: info
+        service: cosmos-monitoring
+      annotations:
+        description: 'Your validator `{{ $labels.moniker }}` rank is `{{ $value }}`!'
+
+    - alert: RankIncrease
+      expr: delta(cosmos_validator_rank[5m]) > 0
+      for: 5m
+      labels:
+        severity: info
+        service: cosmos-monitoring
+      annotations:
+        description: 'Your validator `{{ $labels.moniker }}` rank is `{{ $value }}`!'
+
+    - alert: LowInRank
+      expr: cosmos_validator_rank > (count(cosmos_validators_active == 1) - 10)
+      for: 5m
+      labels:
+        severity: major
+        service: cosmos-monitoring
+      annotations:
+        description: 'Your validator `{{ $labels.moniker }}` rank is `{{ $value }}`!'
+
+    - alert: IsJailed
+      expr: cosmos_validator_jailed == 1
+      for: 1m
+      labels:
+        severity: major
+        service: cosmos-monitoring
+      annotations:
+        description: 'Your validator `{{ $labels.moniker }}` is jailed!'
+
+    - alert: ActiveStatusChanged
+      expr: changes(cosmos_validator_active[5m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+        service: cosmos-monitoring
+      annotations:
+        description: 'Your validator `{{ $labels.moniker }}` changed the status'
 
     - alert: NodeFilesystemReadonly
       expr: node_filesystem_readonly{fstype!~"rootfs|nfs4"} > 0
@@ -120,48 +228,3 @@ groups:
         service: node_exporter
       annotations:
         description: 'Node-exporter textfile collector scraping error on "{{ $labels.instance }}".'
-
-    - alert: TooFewPeers
-      expr: tendermint_p2p_peers{job="cosmos"} < 2
-      for: 5m
-      labels:
-        severity: major
-        service: cosmos-monitoring
-      annotations:
-        description: 'P2P Peers on `{{ $labels.instance }}` is lower than threshold (current value: {{ $value }})'
-
-    - alert: MissingBlocks
-      expr: increase(cosmos_validator_missed_blocks[5m]) > 10
-      for: 5m
-      labels:
-        severity: major
-        service: cosmos-monitoring
-      annotations:
-        description: 'Validator `{{ $labels.moniker }}` is missing `{{ $value }}` blocks!'
-
-    - alert: DegradedSyncing
-      expr: increase(tendermint_consensus_latest_block_height[5m]) < 10
-      for: 5m
-      labels:
-        severity: major
-        service: cosmos-monitoring
-      annotations:
-        description: 'Degraded syncing performance - Job {{ $labels.job }} on {{ $labels.instance }}'
-
-    - alert: LowInRank
-      expr: cosmos_validator_rank > (count(cosmos_validators_active == 1) - 10)
-      for: 5m
-      labels:
-        severity: major
-        service: cosmos-monitoring
-      annotations:
-        description: 'Your validator `{{ $labels.moniker }}` rank is `{{ $value }}`!'
-        
-    - alert: IsJailed
-      expr: cosmos_validator_jailed == 1
-      for: 5m
-      labels:
-        severity: critical
-        service: cosmos-monitoring
-      annotations:
-        description: 'Your validator `{{ $labels.moniker }}` is jailed! `{{ $value }}`!'
