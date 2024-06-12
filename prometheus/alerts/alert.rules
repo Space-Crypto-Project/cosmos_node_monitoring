@@ -14,7 +14,7 @@ groups:
         severity: 'critical'
     
     - alert: MissingBlocksTendermint
-      expr: round(delta(tendermint_consensus_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) >= 5
+      expr: round(delta(tendermint_consensus_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) >= 20
       for: 5m
       labels:
         severity: major
@@ -23,7 +23,7 @@ groups:
         description: "Validator missing blocks ({{ $value }} in last 10 minutes)"
 
     - alert: MissingBlocksCometBft
-      expr: round(delta(cometbft_consensus_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) >= 5
+      expr: round(delta(cometbft_consensus_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) >= 20
       for: 5m
       labels:
         severity: major
@@ -32,7 +32,7 @@ groups:
         description: "Validator missing blocks ({{ $value }} in last 10 minutes)"
 
     - alert: MissingBlocksCosmos
-      expr: round(delta(cosmos_validator_missed_blocks{skip_missing_blocks_alert!="true"}[5m])) > 0
+      expr: round(delta(cosmos_validator_missed_blocks{skip_missing_blocks_alert!="true"}[5m])) > 20
       for: 5m
       labels:
         severity: major
@@ -59,22 +59,22 @@ groups:
         description: "Degraded syncing performance (less than 20 blocks in the last 5 min)"
 
     - alert: ValidatorTooFewPeersT
-      expr: tendermint_p2p_peers < 15
+      expr: tendermint_p2p_peers < 8
       for: 15m
       labels:
         severity: info
         service: cosmos-monitoring
       annotations:
-        description: "Number of peers is {{ $value }} and it is lower than threshold (<15)"
+        description: "Number of peers is {{ $value }} and it is lower than threshold (<8)"
 
     - alert: ValidatorTooFewPeersC
-      expr: cometbft_p2p_peers < 15
+      expr: cometbft_p2p_peers < 8
       for: 15m
       labels:
         severity: info
         service: cosmos-monitoring
       annotations:
-        description: "Number of peers is {{ $value }} and it is lower than threshold (<15)"
+        description: "Number of peers is {{ $value }} and it is lower than threshold (<8)"
 
     - alert: RankDecrease
       expr: delta(cosmos_validator_rank[5m]) < 0
