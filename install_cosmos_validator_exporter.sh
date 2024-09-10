@@ -161,3 +161,5 @@ echo -e "\e[1m\e[32mChain configuration written to config.toml \e[0m" && sleep 1
 
 echo -e "\e[1m\e[32mInstallation finished... \e[0m" && sleep 1
 echo -e "\e[1m\e[32mPlease make sure port 9560 is open \e[0m" && sleep 1
+
+sudo journalctl -u cosmos-validators-exporter -f --output cat
