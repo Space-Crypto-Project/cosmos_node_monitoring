@@ -34,8 +34,7 @@ Description=Cosmos Validators Exporter
 After=network-online.target
 
 [Service]
-User=cosmos_exporter
-Group=cosmos_exporter
+User=$USER
 TimeoutStartSec=0
 CPUWeight=95
 IOWeight=95
