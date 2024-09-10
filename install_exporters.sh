@@ -77,7 +77,7 @@ rm -rf cosmos-exporter
 
 sudo useradd -rs /bin/false cosmos_exporter
 
-sudo tee <<EOF >/dev/null /etc/systemd/system/cosmos-exporter.service
+sudo tee /etc/systemd/system/${BENCH_PREFIX}-cosmos-exporter.service >/dev/null <<EOF
 [Unit]
 Description=Cosmos Exporter
 After=network-online.target
