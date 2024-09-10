@@ -112,6 +112,15 @@ groups:
       annotations:
         description: 'Your validator `{{ $labels.moniker }}` is jailed!'
 
+    - alert: ValidatorIsJailed
+      expr: cosmos_validators_exporter_jailed == 1
+      for: 1m
+      labels:
+        severity: major
+        service: cosmos-monitoring
+      annotations:
+        description: 'Your validator `{{ $labels.moniker }}` is jailed!'
+
     - alert: ActiveStatusChanged
       expr: changes(cosmos_validator_active[5m]) > 0
       for: 5m

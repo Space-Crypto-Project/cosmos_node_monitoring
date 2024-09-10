@@ -155,6 +155,8 @@ EOF
 )
 
 echo "$CHAIN_CONTENT" >> $HOME/cosmos-validators-exporter/config.toml
+sudo systemctl start cosmos-validators-exporter
+
 echo -e "\e[1m\e[32mChain configuration written to config.toml \e[0m" && sleep 1
 
 echo -e "\e[1m\e[32mInstallation finished... \e[0m" && sleep 1
