@@ -84,38 +84,6 @@ json = false
 # then this query will be enabled. Useful if some queries on some chains are broken or
 # do not return any meaningful value (like signing info on e-Money) or are too heavy and
 # the node can't handle such requests (like delegators count on Cosmos Hub).
-[chains.queries]
-# Query for delegators count. Isn't used on consumer chains.
-delegations = true
-# Query for unbonding delegations count. Isn't used on consumer chains.
-unbonds = true
-# Query for self-delegated amount. Isn't used on consumer chains.
-self-delegation = true
-# Query for all delegators count/ranking. Also used in total bonded tokens calculation and validator info.
-validators = true
-# Query for consumer chain's validators. Used in metric representing active validators count on chain.
-consumer-validators = true
-# Query for consumer chains list and info on provider. Only used on ICS provider chains.
-consumer-info = true
-# Query for validator unclaimed commission. Isn't used on consumer chains.
-commission = true
-# Query for validator unclaimed self-delegated rewards. Isn't used on consumer chains.
-rewards = true
-# Query for validator wallet balance
-balance = true
-# Query for validator's consumer assigned key. Only used for ICS.
-# If disabled, then it'll be assumed that the validator is not using assigned keys.
-assigned-key = true
-# Query for validator signing info
-signing-info = true
-# Query for chain slashing params/missed blocks window
-slashing-params = true
-# Query for consumer's soft opt-out threshold. Is only used on consumer chains.
-params = true
-# Query for chain staking params/max validators count. Isn't used on consumer chains.
-staking-params = true
-# Query for node info (chain_id, app/cosmos-sdk/tendermint version, app name)
-node-info = true
 EOF
     )
     
@@ -149,6 +117,40 @@ validators = [
     { address = "$VALIDATOR_ADDR", consensus-address = "$CONSENSUS_ADDR" }
 ]
 is-provider = false
+
+
+[chains.queries]
+# Query for delegators count. Isn't used on consumer chains.
+delegations = true
+# Query for unbonding delegations count. Isn't used on consumer chains.
+unbonds = true
+# Query for self-delegated amount. Isn't used on consumer chains.
+self-delegation = true
+# Query for all delegators count/ranking. Also used in total bonded tokens calculation and validator info.
+validators = true
+# Query for consumer chain's validators. Used in metric representing active validators count on chain.
+consumer-validators = true
+# Query for consumer chains list and info on provider. Only used on ICS provider chains.
+consumer-info = true
+# Query for validator unclaimed commission. Isn't used on consumer chains.
+commission = true
+# Query for validator unclaimed self-delegated rewards. Isn't used on consumer chains.
+rewards = true
+# Query for validator wallet balance
+balance = true
+# Query for validator's consumer assigned key. Only used for ICS.
+# If disabled, then it'll be assumed that the validator is not using assigned keys.
+assigned-key = true
+# Query for validator signing info
+signing-info = true
+# Query for chain slashing params/missed blocks window
+slashing-params = true
+# Query for consumer's soft opt-out threshold. Is only used on consumer chains.
+params = true
+# Query for chain staking params/max validators count. Isn't used on consumer chains.
+staking-params = true
+# Query for node info (chain_id, app/cosmos-sdk/tendermint version, app name)
+node-info = true
 EOF
 )
 
