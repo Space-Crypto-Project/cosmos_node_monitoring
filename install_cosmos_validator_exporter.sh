@@ -26,7 +26,7 @@ if [ ! -d "$HOME/cosmos-validators-exporter" ]; then
     make install
     sudo useradd -rs /bin/false cosmos_exporter
 
-    sudo cp ./cosmos-validators-exporter /usr/bin
+    sudo cp $HOME/cosmos-validators-exporter /usr/bin
 
     sudo tee /etc/systemd/system/cosmos-validators-exporter.service >/dev/null <<EOF
 [Unit]
