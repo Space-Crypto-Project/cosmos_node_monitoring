@@ -121,8 +121,7 @@ EOF
     )
     
     echo "$CONFIG_CONTENT" > $HOME/cosmos-validators-exporter/config.toml
-    echo -e "\e[1m\e[32mDefault configuration written to config.toml \e[0m" && sleep 1
-    exit 1
+    echo -e "\e[1m\e[32mDefault configuration written to config.toml \e[0m" && sleep 2
 fi
 
 
@@ -137,9 +136,8 @@ echo -e "Chain Decimal: \e[1m\e[32m$CHAIN_DECIMAL\e[0m"
 echo '================================================='
 sleep 3
 
-# Insert the chain configuration at the ended the config.toml file
-    CHAIN_CONTENT=$(cat 
-<<EOF
+# Insert the chain configuration at the end of the config.toml file
+CHAIN_CONTENT=$(cat <<EOF
 [[chains]]
 name = "$CHAIN_NAME"
 lcd-endpoint = "$LCD_ENDPOINT"
@@ -153,12 +151,10 @@ validators = [
 ]
 is-provider = false
 EOF
-    )
+)
 
 echo "$CHAIN_CONTENT" >> $HOME/cosmos-validators-exporter/config.toml
 echo -e "\e[1m\e[32mChain configuration written to config.toml \e[0m" && sleep 1
-
-
 
 echo -e "\e[1m\e[32mInstallation finished... \e[0m" && sleep 1
 echo -e "\e[1m\e[32mPlease make sure port 9560 is open \e[0m" && sleep 1
