@@ -15,7 +15,7 @@
 # ./add_validator.sh 141.94.30.110 30061 Og_testnet
 
 # Add targets for 'cosmos' and 'node' jobs
-yq -i '.scrape_configs[] |= (.job_name as $name | .static_configs += (if $name == "prometheus" then [] elif $name == "node" then [{"targets": ["'$1':9100"], "labels": {"instance": "'$3'"}}] elif $name == "cosmos" then [{"targets": ["'$1':'$2'"], "labels": {"custom_instance": "'$3'"}}] else [] end))' ./prometheus/prometheus.yml
+yq -i -y '.scrape_configs[] |= (.job_name as $name | .static_configs += (if $name == "prometheus" then [] elif $name == "node" then [{"targets": ["'$1':9100"], "labels": {"instance": "'$3'"}}] elif $name == "cosmos" then [{"targets": ["'$1':'$2'"], "labels": {"custom_instance": "'$3'"}}] else [] end))' ./prometheus/prometheus.yml
 
 echo "Target $1:$2 added under 'cosmos' job."
 echo "Target $1:9100 added under 'node' job."
@@ -25,7 +25,7 @@ existing_validator_target=$(yq -r '.scrape_configs[] | select(.job_name == "vali
 
 if [ -z "$existing_validator_target" ]; then
   # Include the validator target if it does not exist
-  yq -i '.scrape_configs[] |= (if .job_name == "validator" then .static_configs += [{"targets": ["'$1':9560"]}] else . end)' ./prometheus/prometheus.yml
+  yq -i -y '.scrape_configs[] |= (if .job_name == "validator" then .static_configs += [{"targets": ["'$1':9560"]}] else . end)' ./prometheus/prometheus.yml
   echo "Target $1:9560 added under 'validator' job."
 else
   # Print a message if the target exists
@@ -37,7 +37,7 @@ fi
 
 # if [ -z "$existing_node_target" ]; then
 #   # Include the node target if it does not exist
-#   yq -i '.scrape_configs[] |= (if .job_name == "node" then .static_configs += [{"targets": ["'$1':9100"], "labels": {"instance": "'$3'"}}] else . end)' ./prometheus/prometheus.yml
+#   yq -i -y '.scrape_configs[] |= (if .job_name == "node" then .static_configs += [{"targets": ["'$1':9100"], "labels": {"instance": "'$3'"}}] else . end)' ./prometheus/prometheus.yml
 #   echo "Target $1:9100 added under 'node' job."
 # else
 #   # Print a message if the target exists
