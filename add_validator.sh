@@ -14,7 +14,7 @@
 # Usage: ./add_validator.sh <validator_ip> <prometheus_port> <node_instance_name>
 # ./add_validator.sh 141.94.30.110 30061 Og_testnet
 
-yq -i -y '.scrape_configs[] |= (.job_name as $name | .static_configs += if $name == "prometheus" then [] else ([{targets:["'$1'" + (if $name == "node" then ":9100" elif $name == "cosmos" then ":'$2'" end)], labels:(if $name == "node" then {instance: "'$3'"} elif $name == "cosmos" then {custom_instance: "'$3'"} else {} end)}]) end)' ./prometheus/prometheus.yml
+yq -i -y '.scrape_configs[] |= (.job_name as $name | .static_configs += (if $name == "prometheus" then [] elif $name == "node" then [{"targets": ["'"$1"':9100"], "labels": {"instance": "'"$3"'"}}] elif $name == "cosmos" then [{"targets": ["'"$1"':'"$2"'"], "labels": {"custom_instance": "'"$3"'"}}] else [] end))' ./prometheus/prometheus.yml
 
 echo "Target $1:$2 added under 'cosmos' job."
 echo "Target $1:9100 added under 'node' job."
