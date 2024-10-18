@@ -10,17 +10,50 @@ wget -O install_exporters.sh https://github.com/Space-Crypto-Project/cosmos_node
 
 | KEY |VALUE |
 |---------------|-------------|
-| **bond_denom** | Denominated token name, for example, `ubld` for Agoric. You can find it in genesis file |
-| **bench_prefix** | Prefix for chain addresses, for example, `agoric` for Agoric. You can find it in public addresses like this **agoric**_valoper1zyyz4m9ytdf60fn9yaafx7uy7h463n7alv2ete_ |
+| **bond_denom** | Denominated token name, for example, `uatom` for Cosmos Hub. You can find it in genesis file |
+| **bench_prefix** | Prefix for chain addresses, for example, `atom` for Cosmos Hub. You can find it in public addresses like this **agoric**_valoper1zyyz4m9ytdf60fn9yaafx7uy7h463n7alv2ete_ |
 | **rpc_port** | Your validator `rpc` port that is defined in `config.toml` file. Default value for aura is `26657` |
 | **grpc_port** | Your validator `grpc` port that is defined in `app.toml` file. Default value for aura is `9090` |
-| **Chain Precision** | Network precision. Default value for aura is `6` |
+| **Chain Precision** | Network precision. Default value is `6` |
 
-make sure prometheus is enabled in validator `config.toml` file
+make sure prometheus is enabled in validator `config.toml` file:
+```
+sed -i -e "s/prometheus = false/prometheus = true/" $HOME/.gaiad/config/config.toml
+```
 
 make sure following ports are open:
-- `9100` (node-exporter)
-- `9300` (cosmos-exporter)
+- `9100` ([node-exporter](https://github.com/prometheus/node_exporter))
+- `9300` ([cosmos-exporter](https://github.com/solarlabsteam/cosmos-exporter))
+- `26660` (validator prometheus)
+
+### Install validator exporter on validator node
+Additionally, you can install [cosmos validator exporter](https://github.com/QuokkaStake/cosmos-validators-exporter). 
+We recommend using this exporter if you run multiple validators on the same server.
+
+For that you can use one-liner below
+```
+wget -O install_validator_exporter.sh https://raw.githubusercontent.com/Space-Crypto-Project/cosmos_node_monitoring/master/install_cosmos_validator_exporter.sh && chmod +x install_validator_exporter.sh && ./install_validator_exporter.sh
+```
+
+| KEY |VALUE |
+|---------------|-------------|
+| **Chain Name** | Blockchain Name, for example, `cosmos` for Cosmos |
+| **LCD Endpoint** | Use local or third party endpoint, for example: `http://localhost/26657`
+| **bond_denom** | Denominated token name, for example, `uatom` for Cosmos Hub or `ibc/xxxxx` for IBC denoms. You can find it in genesis file |
+| **Ticker** | Token ticker, for example, `atom` for Cosmos Hub. |
+| **coingecko id** | Coingecko ID, specify it if you want to also get the wallet balance example: `cosmos` |
+| **bench_prefix** | Prefix for chain addresses, for example, `agoric` for Agoric. You can find it in public addresses like this **agoric**_valoper1zyyz4m9ytdf60fn9yaafx7uy7h463n7alv2ete_ |
+| **validator address** | Valoper Address |
+| **consensus address** | Valcon / Consensus Address, specify it if you want to get signing-infos metrics |
+| **Chain Precision** | Network precision. Default value is `6` |
+
+make sure prometheus is enabled in validator `config.toml` file:
+```
+sed -i -e "s/prometheus = false/prometheus = true/" $HOME/.gaiad/config/config.toml
+```
+
+make sure following ports are open:
+- `9560` ([cosmos-validators-exporter](https://github.com/QuokkaStake/cosmos-validators-exporter))
 - `26660` (validator prometheus)
 
 ## Deployment
@@ -58,15 +91,25 @@ source $HOME/.bash_profile
 ```
 
 ### Add validator into _prometheus_ configuration file
-To add validator use command with specified `VALIDATOR_IP`, `PROM_PORT`, `VALOPER_ADDRESS`, `WALLET_ADDRESS` and `PROJECT_NAME`
+
+If you installed [cosmos-exporter](https://github.com/solarlabsteam/cosmos-exporter), use the following command with specified `VALIDATOR_IP`, `PROMETHEUS_PORT`, `VALOPER_ADDRESS`, `WALLET_ADDRESS` and `PROJECT_NAME`
 ```
 $ cd cosmos_node_monitoring
-$ ./add_validator.sh VALIDATOR_IP PROM_PORT VALOPER_ADDRESS WALLET_ADDRESS PROJECT_NAME
+$ ./add_validator_cexp.sh VALIDATOR_IP PROMETHEUS_PORT VALOPER_ADDRESS WALLET_ADDRESS PROJECT_NAME
 ```
 
-> example: ```./add_validator.sh 1.2.3.4 26660 cosmosvaloper1s9rtstp8amx9vgsekhf3rk4rdr7qvg8dlxuy8v cosmos1s9rtstp8amx9vgsekhf3rk4rdr7qvg8d6jg3tl cosmos```
+> example: ```./add_validator_cexp.sh 1.2.3.4 26660 cosmosvaloper1s9rtstp8amx9vgsekhf3rk4rdr7qvg8dlxuy8v cosmos1s9rtstp8amx9vgsekhf3rk4rdr7qvg8d6jg3tl cosmos```
 
-To add more validators just run command above with validator values
+
+If you installed [cosmos-validators-exporter](https://github.com/QuokkaStake/cosmos-validators-exporter), use the following command with specified `VALIDATOR_IP`, `PROMETHEUS_PORT`, and `PROJECT_NAME`
+```
+$ cd cosmos_node_monitoring
+$ ../add_validator.sh VALIDATOR_IP PROMETHEUS_PORT PROJECT_NAME
+```
+
+> example: ```../add_validator.sh 1.2.3.4 26660 kopi_testnet```
+
+To add more validators just run commands above with validator values
 
 ### Run docker-compose
 Deploy the monitoring stack
