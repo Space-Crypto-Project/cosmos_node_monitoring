@@ -12,6 +12,7 @@ groups:
       # Labels - additional labels to be attached to the alert
       labels:
         severity: 'critical'
+    
     - alert: MissingBlocksTendermint
       expr: round(delta(tendermint_consensus_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) >= 20
       for: 5m
@@ -31,13 +32,13 @@ groups:
         description: "Validator missing blocks ({{ $value }} in last 10 minutes)"
 
     - alert: MissingBlocksCosmos
-      expr: round(delta(cosmos_validator_missed_blocks{skip_missing_blocks_alert!="true"}[10m])) > 20
+      expr: round(delta(cosmos_validator_missed_blocks{skip_missing_blocks_alert!="true"}[5m])) > 20
       for: 5m
       labels:
         severity: major
         service: cosmos-monitoring
       annotations:
-        description: 'Validator `{{ $labels.moniker }}` is missing `{{ $value }}` blocks in last 10 minutes!'
+        description: 'Validator `{{ $labels.moniker }}` is missing `{{ $value }}` blocks!'
 
     - alert: DegradedSyncingTendermint
       expr: increase(tendermint_consensus_height{skip_sync_alert!="true"}[5m]) < 20
@@ -49,13 +50,13 @@ groups:
         description: "Degraded syncing performance (less than 20 blocks in the last 5 min)"
 
     - alert: DegradedSyncingCometBft
-      expr: increase(cometbft_consensus_height{skip_sync_alert!="true"}[5m]) < 15
+      expr: increase(cometbft_consensus_height{skip_sync_alert!="true"}[5m]) < 20
       for: 10m
       labels:
         severity: warning
         service: cosmos-monitoring
       annotations:
-        description: "Degraded syncing performance (less than 15 blocks in the last 5 min)"
+        description: "Degraded syncing performance (less than 20 blocks in the last 5 min)"
 
     - alert: ValidatorTooFewPeersT
       expr: tendermint_p2p_peers < 8
@@ -110,15 +111,6 @@ groups:
         service: cosmos-monitoring
       annotations:
         description: 'Your validator `{{ $labels.moniker }}` is jailed!'
-
-    - alert: ValidatorIsJailed
-      expr: cosmos_validators_exporter_jailed == 1
-      for: 1m
-      labels:
-        severity: major
-        service: cosmos-monitoring
-      annotations:
-        description: 'Your validator is jailed!'
 
     - alert: ActiveStatusChanged
       expr: changes(cosmos_validator_active[5m]) > 0
