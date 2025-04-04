@@ -26,7 +26,7 @@ existing_validator_target=$(yq -r '.scrape_configs[] | select(.job_name == "vali
 if [ -z "$existing_validator_target" ]; then
   # Include the validator target if it does not exist
 
-   yq -i '.scrape_configs[] |= (if .job_name == "validator" then .static_configs += [{"targets": ["'$1':9560"]}] else . end)' ./prometheus/prometheus.yml
+   yq -i -y '.scrape_configs[] |= (if .job_name == "validator" then .static_configs += [{"targets": ["'$1':9560"]}] else . end)' ./prometheus/prometheus.yml
    echo "Target $1:9560 added under 'validator' job."
 
 else
