@@ -193,9 +193,10 @@ def matcher_lines(alerts: tuple[str, ...] | None) -> list[str]:
     if alerts is None:
         return []
     expression = "^(?:" + "|".join(re.escape(name) for name in alerts) + ")$"
+    matcher = yaml_string(f'alertname=~"{expression}"')
     return [
         "      matchers:\n",
-        f"        - {yaml_string(f'alertname=~\"{expression}\"')}\n",
+        f"        - {matcher}\n",
     ]
 
 
