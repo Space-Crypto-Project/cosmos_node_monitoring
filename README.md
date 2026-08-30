@@ -84,11 +84,20 @@ vim $HOME/cosmos_node_monitoring/config/.env
 | TELEGRAM_ADMIN | Your user id you can get from [@userinfobot](https://t.me/userinfobot). The bot will only reply to messages sent from the user. All other messages are dropped and logged on the bot's console |
 | TELEGRAM_TOKEN | Your telegram bot access token you can get from [@botfather](https://telegram.me/botfather). To generate new token just follow a few simple steps described [here](https://core.telegram.org/bots#6-botfather) |
 
-### Export _.env_ file values into _.bash_profile_
-```
-echo "export $(xargs < $HOME/cosmos_node_monitoring/config/.env)" > $HOME/.bash_profile
-source $HOME/.bash_profile
-```
+### Optional SMTP e-mail notifications
+
+Telegram remains enabled. To also send every Alertmanager notification by e-mail, set the following local values in `config/.env` and change `EMAIL_NOTIFICATIONS_ENABLED` to `true`:
+
+| KEY | VALUE |
+|---------------|-------------|
+| EMAIL_SMTP_HOST | SMTP relay hostname, for example `smtp.example.invalid` |
+| EMAIL_SMTP_PORT | SMTP relay port, such as `587` |
+| EMAIL_SMTP_FROM | Sender address, such as `alerts@example.invalid` |
+| EMAIL_SMTP_TO | Recipient list; separate multiple recipients with commas, for example `primary@example.invalid,backup@example.invalid` |
+| EMAIL_SMTP_USERNAME / EMAIL_SMTP_PASSWORD | Optional SMTP authentication pair; set both or neither |
+| EMAIL_SMTP_REQUIRE_TLS | `true` by default; set `false` only if the local SMTP relay explicitly requires it |
+
+The launcher reads a deliberately limited `KEY=VALUE` format. Quote values containing spaces, and do not use shell interpolation such as `${VARIABLE}` or `$(command)`.
 
 ### Add validator into _prometheus_ configuration file
 
@@ -111,11 +120,14 @@ $ ../add_validator.sh VALIDATOR_IP PROMETHEUS_PORT PROJECT_NAME
 
 To add more validators just run commands above with validator values
 
-### Run docker-compose
-Deploy the monitoring stack
+### Run monitoring stack
+
+Render the local Alertmanager configuration and deploy the monitoring stack:
 ```
-cd $HOME/cosmos_node_monitoring && docker-compose up -d
+cd $HOME/cosmos_node_monitoring && bash run_monitoring.sh
 ```
+
+The launcher requires Docker Compose v2 because authenticated SMTP uses a Compose secret. It passes `config/.env` directly to Compose; do not export its values into your shell profile. It restricts that directory to the local owner, renders non-secret SMTP settings there, injects the SMTP password as an Alertmanager-only Compose secret, and restarts Alertmanager so changed SMTP settings take effect.
 
 ports used:
 - `8080` (alertmanager-bot)
@@ -177,21 +189,10 @@ ports used:
 ## Testing
 
 ### Test alerts
-1. For simple test you can stop `node-exporter` service for 5 minutes. It should trigger alert
-```
-systemctl stop node_exporter
-```
-2. You will see message from bot firing
-
-![image](https://user-images.githubusercontent.com/50621007/161050843-889edc5e-4e27-4778-9010-b9e9e861cc74.png)
-
-3. Now you can start `node-exporter` service back
-```
-systemctl start node_exporter
-```
-4. You will get confirmation from bot that issue is resolved
-
-![image](https://user-images.githubusercontent.com/50621007/161051501-6e87cbb1-6699-4557-81ed-9564db57a76f.png)
+1. Use a disposable validator or test environment. Do not stop a production exporter to trigger an alert.
+2. Start the stack with `./run_monitoring.sh`, then inspect the Alertmanager logs with `docker compose logs alertmanager`.
+3. For SMTP, use a disposable SMTP endpoint or leave `EMAIL_NOTIFICATIONS_ENABLED=false`; never test with a production recipient until the configuration is verified.
+4. Confirm that the test alert reaches Telegram and, when enabled, the configured e-mail recipients. Resolved alerts are sent to both channels.
 
 ## Dashboard contents
 Grafana dashboard is devided into 4 sections:

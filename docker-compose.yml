@@ -5,6 +5,10 @@ volumes:
   grafana_data: {}
   alerta_db: {}
 
+secrets:
+  alertmanager_smtp_password:
+    environment: EMAIL_SMTP_PASSWORD
+
 networks:
   cosmos-monitoring:
 
@@ -92,13 +96,19 @@ services:
       - 9093:9093
     volumes:
       - type: bind
-        source: ./prometheus/alert_manager
-        target: /etc/alertmanager
+        source: ./config/alertmanager.runtime.yml
+        target: /etc/alertmanager/alertmanager.yml
         read_only: true
     command: [
       '--config.file=/etc/alertmanager/alertmanager.yml',
       '--log.level=debug',
     ]
+    secrets:
+      - source: alertmanager_smtp_password
+        target: alertmanager_smtp_password
+        uid: '65534'
+        gid: '65534'
+        mode: 0440
     hostname: 'alertmanager'
     restart: always
 
