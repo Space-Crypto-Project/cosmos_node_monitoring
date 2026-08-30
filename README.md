@@ -84,9 +84,22 @@ vim $HOME/cosmos_node_monitoring/config/.env
 | TELEGRAM_ADMIN | Your user id you can get from [@userinfobot](https://t.me/userinfobot). The bot will only reply to messages sent from the user. All other messages are dropped and logged on the bot's console |
 | TELEGRAM_TOKEN | Your telegram bot access token you can get from [@botfather](https://telegram.me/botfather). To generate new token just follow a few simple steps described [here](https://core.telegram.org/bots#6-botfather) |
 
+### Notification policies
+
+Telegram and e-mail have independent alert lists and delivery cadences. Run `bash run_monitoring.sh` after changing `config/.env`; it renders and restarts Alertmanager. The settings below use Alertmanager duration syntax (`0s`, `5m`, `1h`, `24h`). Alert lists are comma-separated names from [`prometheus/alerts/alert.rules`](prometheus/alerts/alert.rules); the launcher rejects unknown names before changing the active runtime configuration.
+
+Telegram keeps the historical defaults: every active alert, immediate delivery, five-minute grouping, hourly reminders, and a resolved message. Change only the values you need:
+
+| KEY | Default | VALUE |
+|---------------|-------------|-------------|
+| TELEGRAM_ALERTS | `all` | `all` for every active alert, or selected names such as `InstanceDown,IsJailed` |
+| TELEGRAM_GROUP_WAIT | `0s` | Wait before the first notification for a group |
+| TELEGRAM_GROUP_INTERVAL | `5m` | Minimum delay for new alerts added to an existing group |
+| TELEGRAM_REPEAT_INTERVAL | `1h` | Reminder cadence while an incident remains active |
+
 ### Optional SMTP e-mail notifications
 
-Telegram remains enabled. To also send every Alertmanager notification by e-mail, set the following local values in `config/.env` and change `EMAIL_NOTIFICATIONS_ENABLED` to `true`:
+To enable SMTP e-mail, set the following local values in `config/.env` and change `EMAIL_NOTIFICATIONS_ENABLED` to `true`:
 
 | KEY | VALUE |
 |---------------|-------------|
@@ -97,7 +110,16 @@ Telegram remains enabled. To also send every Alertmanager notification by e-mail
 | EMAIL_SMTP_USERNAME / EMAIL_SMTP_PASSWORD | Optional SMTP authentication pair; set both or neither |
 | EMAIL_SMTP_REQUIRE_TLS | `true` by default; set `false` only if the local SMTP relay explicitly requires it |
 
-The launcher reads a deliberately limited `KEY=VALUE` format. Quote values containing spaces, and do not use shell interpolation such as `${VARIABLE}` or `$(command)`.
+E-mail defaults to immediate firing and resolution messages only for `InstanceDown`, `IsJailed`, and `ValidatorIsJailed`; repeated alerts are limited to once every 24 hours. Its policy does not affect Telegram:
+
+| KEY | Default | VALUE |
+|---------------|-------------|-------------|
+| EMAIL_ALERTS | `InstanceDown,IsJailed,ValidatorIsJailed` | Selected active alert names; use `all` to receive every active alert by e-mail |
+| EMAIL_GROUP_WAIT | `0s` | Wait before the first e-mail for a group |
+| EMAIL_GROUP_INTERVAL | `5m` | Minimum delay for new alerts added to an existing e-mail group |
+| EMAIL_REPEAT_INTERVAL | `24h` | Reminder cadence while an e-mail incident remains active |
+
+Matching e-mail alerts still go to Telegram. The launcher reads a deliberately limited `KEY=VALUE` format: quote values containing spaces, and do not use shell interpolation such as `${VARIABLE}` or `$(command)`.
 
 ### Add validator into _prometheus_ configuration file
 
@@ -190,9 +212,9 @@ ports used:
 
 ### Test alerts
 1. Use a disposable validator or test environment. Do not stop a production exporter to trigger an alert.
-2. Start the stack with `./run_monitoring.sh`, then inspect the Alertmanager logs with `docker compose logs alertmanager`.
+2. Start the stack with `bash run_monitoring.sh`, then inspect the Alertmanager logs with `docker compose logs alertmanager`.
 3. For SMTP, use a disposable SMTP endpoint or leave `EMAIL_NOTIFICATIONS_ENABLED=false`; never test with a production recipient until the configuration is verified.
-4. Confirm that the test alert reaches Telegram and, when enabled, the configured e-mail recipients. Resolved alerts are sent to both channels.
+4. Confirm that the test alert reaches Telegram and, when selected and enabled, the configured e-mail recipients. Resolved alerts are sent to both selected channels.
 
 ## Dashboard contents
 Grafana dashboard is devided into 4 sections:
