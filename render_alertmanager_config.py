@@ -10,26 +10,41 @@ import re
 import sys
 import tempfile
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, NamedTuple
 
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_ENV_FILE = ROOT / "config" / ".env"
 DEFAULT_TEMPLATE_FILE = ROOT / "prometheus" / "alert_manager" / "alertmanager.yml"
+DEFAULT_ALERT_RULES_FILE = ROOT / "prometheus" / "alerts" / "alert.rules"
 DEFAULT_OUTPUT_FILE = ROOT / "config" / "alertmanager.runtime.yml"
 
 ENVIRONMENT_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 INTERPOLATION = re.compile(r"\$\{|\$\(|`")
+ALERT_NAME = re.compile(r"^\s*-\s+alert:\s*([A-Za-z_][A-Za-z0-9_]*)\s*$")
+# Alertmanager duration components must appear once, from largest to smallest.
+DURATION = re.compile(
+    r"^(?=.+)(?:[0-9]+y)?(?:[0-9]+w)?(?:[0-9]+d)?(?:[0-9]+h)?"
+    r"(?:[0-9]+m)?(?:[0-9]+s)?(?:[0-9]+ms)?$"
+)
 
 
 class ConfigurationError(ValueError):
     """Raised when the local monitoring configuration is not safe to render."""
 
 
+class NotificationPolicy(NamedTuple):
+    """The alert selection and delivery cadence for one notification channel."""
+
+    alerts: tuple[str, ...] | None
+    group_wait: str
+    group_interval: str
+    repeat_interval: str
+
+
 def parse_dotenv(path: Path) -> dict[str, str]:
     """Read a deliberately small KEY=VALUE dotenv format without shell evaluation."""
     values: dict[str, str] = {}
-
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except FileNotFoundError as error:
@@ -41,7 +56,6 @@ def parse_dotenv(path: Path) -> dict[str, str]:
             continue
         if "=" not in line:
             raise ConfigurationError(f"{path}:{line_number}: expected KEY=VALUE")
-
         key, raw_value = line.split("=", 1)
         key = key.strip()
         if not ENVIRONMENT_KEY.fullmatch(key):
@@ -57,13 +71,11 @@ def parse_dotenv(path: Path) -> dict[str, str]:
             raise ConfigurationError(
                 f"{path}:{line_number}: quote values that contain whitespace"
             )
-
         if INTERPOLATION.search(value):
             raise ConfigurationError(
                 f"{path}:{line_number}: shell interpolation is not supported in .env values"
             )
         values[key] = value
-
     return values
 
 
@@ -72,13 +84,75 @@ def yaml_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def active_alert_names(path: Path) -> set[str]:
+    """Read active Prometheus alert names from the repository's rule file."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError as error:
+        raise ConfigurationError(f"Prometheus alert rules are missing: {path}") from error
+    names = {
+        match.group(1)
+        for line in lines
+        if (match := ALERT_NAME.fullmatch(line)) is not None
+    }
+    if not names:
+        raise ConfigurationError(f"Prometheus alert rules contain no alert names: {path}")
+    return names
+
+
+def selected_alerts(
+    values: Mapping[str, str], key: str, default: str, available: set[str]
+) -> tuple[str, ...] | None:
+    """Validate a comma-separated alert list; ``all`` intentionally has no matcher."""
+    raw_value = values.get(key, default).strip()
+    if raw_value.lower() == "all":
+        return None
+    names = tuple(name.strip() for name in raw_value.split(",") if name.strip())
+    if not names:
+        raise ConfigurationError(f"{key} must be all or a comma-separated list of alert names")
+    if len(set(names)) != len(names):
+        raise ConfigurationError(f"{key} must not contain duplicate alert names")
+    unknown = sorted(set(names) - available)
+    if unknown:
+        raise ConfigurationError(
+            f"{key} contains alert names that are not active in prometheus/alerts/alert.rules: "
+            + ", ".join(unknown)
+        )
+    return names
+
+
+def duration(values: Mapping[str, str], key: str, default: str) -> str:
+    """Validate Alertmanager duration syntax before it reaches the runtime file."""
+    value = values.get(key, default).strip()
+    if not DURATION.fullmatch(value):
+        raise ConfigurationError(
+            f"{key} must be an Alertmanager duration such as 0s, 5m, 1h, or 24h"
+        )
+    return value
+
+
+def notification_policy(
+    values: Mapping[str, str], prefix: str, alerts_default: str, available: set[str]
+) -> NotificationPolicy:
+    """Build one channel policy from its independent environment variables."""
+    return NotificationPolicy(
+        alerts=selected_alerts(values, f"{prefix}_ALERTS", alerts_default, available),
+        group_wait=duration(values, f"{prefix}_GROUP_WAIT", "0s"),
+        group_interval=duration(values, f"{prefix}_GROUP_INTERVAL", "5m"),
+        repeat_interval=duration(
+            values,
+            f"{prefix}_REPEAT_INTERVAL",
+            "1h" if prefix == "TELEGRAM" else "24h",
+        ),
+    )
+
+
 def enabled_email_settings(values: Mapping[str, str]) -> dict[str, str] | None:
     enabled = values.get("EMAIL_NOTIFICATIONS_ENABLED", "false").lower()
     if enabled not in {"true", "false"}:
         raise ConfigurationError("EMAIL_NOTIFICATIONS_ENABLED must be true or false")
     if enabled == "false":
         return None
-
     required = (
         "EMAIL_SMTP_HOST",
         "EMAIL_SMTP_PORT",
@@ -91,22 +165,18 @@ def enabled_email_settings(values: Mapping[str, str]) -> dict[str, str] | None:
             "E-mail notifications are enabled but these variables are empty: "
             + ", ".join(missing)
         )
-
     port = values["EMAIL_SMTP_PORT"]
     if not port.isdecimal() or not 1 <= int(port) <= 65535:
         raise ConfigurationError("EMAIL_SMTP_PORT must be an integer from 1 to 65535")
-
     require_tls = values.get("EMAIL_SMTP_REQUIRE_TLS", "true").lower()
     if require_tls not in {"true", "false"}:
         raise ConfigurationError("EMAIL_SMTP_REQUIRE_TLS must be true or false")
-
     username = values.get("EMAIL_SMTP_USERNAME", "")
     password = values.get("EMAIL_SMTP_PASSWORD", "")
     if bool(username) != bool(password):
         raise ConfigurationError(
             "EMAIL_SMTP_USERNAME and EMAIL_SMTP_PASSWORD must be set together"
         )
-
     return {
         "host": values["EMAIL_SMTP_HOST"],
         "port": port,
@@ -118,7 +188,33 @@ def enabled_email_settings(values: Mapping[str, str]) -> dict[str, str] | None:
     }
 
 
+def matcher_lines(alerts: tuple[str, ...] | None) -> list[str]:
+    """Return an Alertmanager matcher only when a channel excludes some alerts."""
+    if alerts is None:
+        return []
+    expression = "^(?:" + "|".join(re.escape(name) for name in alerts) + ")$"
+    return [
+        "      matchers:\n",
+        f"        - {yaml_string(f'alertname=~\"{expression}\"')}\n",
+    ]
+
+
+def route_lines(receiver: str, policy: NotificationPolicy, *, continue_to_next: bool) -> list[str]:
+    lines = [
+        f"    - receiver: {receiver}\n",
+        "      group_by: ['...']\n",
+        f"      group_wait: {policy.group_wait}\n",
+        f"      group_interval: {policy.group_interval}\n",
+        f"      repeat_interval: {policy.repeat_interval}\n",
+        *matcher_lines(policy.alerts),
+    ]
+    if continue_to_next:
+        lines.append("      continue: true\n")
+    return lines
+
+
 def insert_global_smtp_settings(template: str, settings: Mapping[str, str]) -> str:
+    """Add SMTP fields to the template's single existing Alertmanager global block."""
     lines = template.splitlines(keepends=True)
     try:
         global_index = next(index for index, line in enumerate(lines) if line == "global:\n")
@@ -127,11 +223,9 @@ def insert_global_smtp_settings(template: str, settings: Mapping[str, str]) -> s
 
     insertion_index = global_index + 1
     while insertion_index < len(lines) and (
-        not lines[insertion_index].strip()
-        or lines[insertion_index].startswith((" ", "\t"))
+        not lines[insertion_index].strip() or lines[insertion_index].startswith((" ", "\t"))
     ):
         insertion_index += 1
-
     smarthost = f"{settings['host']}:{settings['port']}"
     smtp_lines = [
         f"  smtp_smarthost: {yaml_string(smarthost)}\n",
@@ -148,51 +242,80 @@ def insert_global_smtp_settings(template: str, settings: Mapping[str, str]) -> s
     return "".join(lines[:insertion_index] + smtp_lines + lines[insertion_index:])
 
 
-def append_receiver_email_settings(template: str, settings: Mapping[str, str]) -> str:
-    lines = template.splitlines(keepends=True)
-    receiver_start = next(
-        (
-            index
-            for index, line in enumerate(lines)
-            if line.rstrip("\r\n") in {"- name: 'node-monitoring'", '- name: "node-monitoring"'}
-        ),
-        None,
+def render_config_text(
+    template: str,
+    telegram_policy: NotificationPolicy,
+    email_policy: NotificationPolicy | None,
+    email_settings: Mapping[str, str] | None,
+) -> str:
+    """Append independent routes and receivers to the stable global/template settings."""
+    if "global:" not in template or "templates:" not in template:
+        raise ConfigurationError("Alertmanager template must define global and templates sections")
+    if "\nroute:" in template or "\nreceivers:" in template:
+        raise ConfigurationError("Alertmanager template routes and receivers are generated at runtime")
+
+    if email_settings:
+        template = insert_global_smtp_settings(template, email_settings)
+    lines = [template.rstrip() + "\n\n"]
+    lines.extend(
+        [
+            "route:\n",
+            "  receiver: discard\n",
+            "  routes:\n",
+            *route_lines("telegram", telegram_policy, continue_to_next=bool(email_settings)),
+        ]
     )
-    if receiver_start is None:
-        raise ConfigurationError("Alertmanager template must define the node-monitoring receiver")
+    if email_settings:
+        if email_policy is None:
+            raise ConfigurationError("E-mail policy is missing while e-mail is enabled")
+        lines.extend(route_lines("email", email_policy, continue_to_next=False))
+    lines.extend(
+        [
+            "\nreceivers:\n",
+            "- name: discard\n",
+            "- name: telegram\n",
+            "  webhook_configs:\n",
+            "  - send_resolved: true\n",
+            "    url: 'http://alertmanager-bot:8080'\n",
+        ]
+    )
+    if email_settings:
+        lines.extend(
+            [
+                "- name: email\n",
+                "  email_configs:\n",
+                f"  - to: {yaml_string(email_settings['to'])}\n",
+                "    send_resolved: true\n",
+            ]
+        )
+    return "".join(lines)
 
-    receiver_end = len(lines)
-    for index in range(receiver_start + 1, len(lines)):
-        if lines[index].startswith("- name:"):
-            receiver_end = index
-            break
 
-    receiver_lines = lines[receiver_start:receiver_end]
-    if not any(line.lstrip().startswith("webhook_configs:") for line in receiver_lines):
-        raise ConfigurationError("node-monitoring receiver must retain its webhook configuration")
-    if any(line.lstrip().startswith("email_configs:") for line in receiver_lines):
-        raise ConfigurationError("node-monitoring receiver already defines email_configs")
-
-    email_lines = [
-        "" if receiver_end == 0 or lines[receiver_end - 1].endswith("\n") else "\n",
-        "  email_configs:\n",
-        f"  - to: {yaml_string(settings['to'])}\n",
-        "    send_resolved: true\n",
-    ]
-    return "".join(lines[:receiver_end] + email_lines + lines[receiver_end:])
-
-
-def render_config(env_file: Path, template_file: Path, output_file: Path) -> None:
+def render_config(
+    env_file: Path,
+    template_file: Path,
+    output_file: Path,
+    alert_rules_file: Path = DEFAULT_ALERT_RULES_FILE,
+) -> None:
     values = parse_dotenv(env_file)
-    settings = enabled_email_settings(values)
+    available_alerts = active_alert_names(alert_rules_file)
+    telegram_policy = notification_policy(values, "TELEGRAM", "all", available_alerts)
+    email_settings = enabled_email_settings(values)
+    email_policy = (
+        notification_policy(
+            values,
+            "EMAIL",
+            "InstanceDown,IsJailed,ValidatorIsJailed",
+            available_alerts,
+        )
+        if email_settings
+        else None
+    )
     try:
-        rendered = template_file.read_text(encoding="utf-8")
+        template = template_file.read_text(encoding="utf-8")
     except FileNotFoundError as error:
         raise ConfigurationError(f"Alertmanager template is missing: {template_file}") from error
-
-    if settings:
-        rendered = insert_global_smtp_settings(rendered, settings)
-        rendered = append_receiver_email_settings(rendered, settings)
+    rendered = render_config_text(template, telegram_policy, email_policy, email_settings)
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
     os.chmod(env_file, 0o600)
