@@ -1,2 +1,7 @@
 config/.env
 prometheus/prometheus_edited.yml
+config/alertmanager.runtime.yml
+AGENTS.md
+plans/
+researchs/
+reviews/
